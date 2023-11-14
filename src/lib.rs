@@ -8,7 +8,6 @@ use winit::{
 mod state;
 
 pub fn run() {
-    env_logger::init();
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Wait);
 
