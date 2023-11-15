@@ -1,4 +1,4 @@
 fn main() {
     env_logger::init();
-    wgpu_tutorial::run();
+    pollster::block_on(wgpu_tutorial::run());
 }
