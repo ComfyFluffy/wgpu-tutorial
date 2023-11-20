@@ -14,8 +14,8 @@ pub struct State {
     window: Window,
 
     render_pipeline: wgpu::RenderPipeline,
-
-    triangle_color: wgpu::Color,
+    color_buffer: wgpu::Buffer,
+    color_bind_group: wgpu::BindGroup,
 }
 
 impl State {
@@ -97,28 +97,40 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        // let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //     label: Some("Color Buffer"),
-        //     contents: bytemuck::cast_slice(&[0.0f32, 0.5, 0.1, 0.3]),
-        //     usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-        // });
+        let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Color Buffer"),
+            contents: bytemuck::cast_slice(&[0.3f32, 0.5, 0.1, 1.0]),
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        });
 
-        // let color_bind_group_layout = wgpu::BindGroupLayoutEntry {
-        //     binding: 0,
-        //     visibility: wgpu::ShaderStages::FRAGMENT,
-        //     ty: wgpu::BindingType::Buffer {
-        //         ty: wgpu::BufferBindingType::Uniform,
-        //         has_dynamic_offset: false,
-        //         min_binding_size: None,
-        //     },
-        //     count: None,
-        // };
+        let color_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Color Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+        let color_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Color Bind Group"),
+            layout: &color_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: color_buffer.as_entire_binding(),
+            }],
+        });
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
+                bind_group_layouts: &[&color_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -156,7 +168,8 @@ impl State {
             size,
             window,
             render_pipeline,
-            triangle_color: wgpu::Color::GREEN,
+            color_buffer,
+            color_bind_group,
         }
     }
 
@@ -212,6 +225,8 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(0, &self.color_bind_group, &[]);
+
             render_pass.draw(0..9, 0..1);
         }
 
@@ -222,11 +237,9 @@ impl State {
     }
 
     pub fn set_random_color(&mut self) {
-        self.triangle_color = wgpu::Color {
-            r: rand::random(),
-            g: rand::random(),
-            b: rand::random(),
-            a: 1.0,
-        };
+        let mut color: [f32; 4] = rand::random();
+        color[3] = 1.0;
+        self.queue
+            .write_buffer(&self.color_buffer, 0, bytemuck::cast_slice(&color));
     }
 }

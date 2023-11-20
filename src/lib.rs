@@ -9,6 +9,9 @@ use winit::{
 mod state;
 
 fn handle_key_event(state: &mut State, event: KeyEvent) {
+    if event.state != ElementState::Pressed {
+        return;
+    }
     match event.logical_key {
         Key::Named(NamedKey::Space) => state.set_random_color(),
         _ => {}
@@ -36,7 +39,9 @@ pub async fn run() {
                         },
                     ..
                 } => elwt.exit(),
-                WindowEvent::KeyboardInput { event, .. } => {}
+                WindowEvent::KeyboardInput { event, .. } => {
+                    handle_key_event(&mut state, event);
+                }
                 WindowEvent::Resized(physical_size) => {
                     state.resize(physical_size);
                 }
