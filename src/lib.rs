@@ -8,6 +8,13 @@ use winit::{
 
 mod state;
 
+fn handle_key_event(state: &mut State, event: KeyEvent) {
+    match event.logical_key {
+        Key::Named(NamedKey::Space) => state.set_random_color(),
+        _ => {}
+    }
+}
+
 pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Wait);
@@ -29,17 +36,21 @@ pub async fn run() {
                         },
                     ..
                 } => elwt.exit(),
+                WindowEvent::KeyboardInput { event, .. } => {}
                 WindowEvent::Resized(physical_size) => {
                     state.resize(physical_size);
                 }
                 _ => {}
             },
-            Event::AboutToWait => match state.render() {
-                Ok(_) => {}
-                Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                Err(wgpu::SurfaceError::OutOfMemory) => panic!("Out of memory"),
-                Err(e) => eprintln!("{:?}", e),
-            },
+            Event::AboutToWait => {
+                match state.render() {
+                    Ok(_) => {}
+                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+                    Err(wgpu::SurfaceError::OutOfMemory) => panic!("Out of memory"),
+                    Err(e) => eprintln!("{:?}", e),
+                }
+                state.window().request_redraw();
+            }
             _ => {}
         })
         .unwrap();
