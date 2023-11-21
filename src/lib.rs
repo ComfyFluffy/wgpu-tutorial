@@ -13,7 +13,7 @@ fn handle_key_event(state: &mut State, event: KeyEvent) {
         return;
     }
     match event.logical_key {
-        Key::Named(NamedKey::Space) => state.set_random_color(),
+        Key::Named(NamedKey::Space) => {}
         _ => {}
     }
 }

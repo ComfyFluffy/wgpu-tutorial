@@ -1,6 +1,42 @@
-use wgpu::util::DeviceExt;
+use std::mem::size_of;
+
+use wgpu::{util::DeviceExt, VertexAttribute};
 // lib.rs
 use winit::{event::WindowEvent, window::Window};
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
+
+impl Vertex {
+    fn desc() -> wgpu::VertexBufferLayout<'static> {
+        const ATTRIBUTES: &[VertexAttribute] =
+            &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
+        wgpu::VertexBufferLayout {
+            array_stride: size_of::<Self>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: ATTRIBUTES,
+        }
+    }
+}
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [0.0, 0.5, 0.0],
+        color: [1.0, 0.0, 0.0],
+    },
+    Vertex {
+        position: [-0.5, -0.5, 0.0],
+        color: [0.0, 1.0, 0.0],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.0],
+        color: [0.0, 0.0, 1.0],
+    },
+];
 
 pub struct State {
     surface: wgpu::Surface,
@@ -14,8 +50,8 @@ pub struct State {
     window: Window,
 
     render_pipeline: wgpu::RenderPipeline,
-    color_buffer: wgpu::Buffer,
-    color_bind_group: wgpu::BindGroup,
+
+    vertex_buffer: wgpu::Buffer,
 }
 
 impl State {
@@ -97,40 +133,17 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Color Buffer"),
-            contents: bytemuck::cast_slice(&[0.3f32, 0.5, 0.1, 1.0]),
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-        });
-
-        let color_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Color Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
-        let color_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Color Bind Group"),
-            layout: &color_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: color_buffer.as_entire_binding(),
-            }],
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
         });
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&color_bind_group_layout],
+                bind_group_layouts: &[],
                 push_constant_ranges: &[],
             });
 
@@ -140,7 +153,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[],
+                buffers: &[Vertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -168,8 +181,7 @@ impl State {
             size,
             window,
             render_pipeline,
-            color_buffer,
-            color_bind_group,
+            vertex_buffer,
         }
     }
 
@@ -225,21 +237,14 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.color_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
-            render_pass.draw(0..9, 0..1);
+            render_pass.draw(0..3, 0..1);
         }
 
         self.queue.submit(Some(encoder.finish()));
         output.present();
 
         Ok(())
-    }
-
-    pub fn set_random_color(&mut self) {
-        let mut color: [f32; 4] = rand::random();
-        color[3] = 1.0;
-        self.queue
-            .write_buffer(&self.color_buffer, 0, bytemuck::cast_slice(&color));
     }
 }
