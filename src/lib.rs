@@ -14,6 +14,13 @@ fn handle_key_event(state: &mut State, event: KeyEvent) {
     }
     match event.logical_key {
         Key::Named(NamedKey::Space) => {}
+        Key::Character(c) => match c.to_ascii_lowercase().as_str() {
+            "c" => state
+                .window()
+                .set_fullscreen(Some(winit::window::Fullscreen::Borderless(None))),
+            "f" => state.window().set_fullscreen(None),
+            _ => {}
+        },
         _ => {}
     }
 }
