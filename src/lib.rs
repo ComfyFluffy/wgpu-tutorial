@@ -31,7 +31,7 @@ pub async fn run() {
 
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
-    let mut state = State::new(window).await;
+    let mut state = State::new(&window).await;
 
     event_loop
         .run(move |event, elwt| match event {

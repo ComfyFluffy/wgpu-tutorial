@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use wgpu::{util::DeviceExt, VertexAttribute};
 // lib.rs
-use winit::{event::WindowEvent, window::Window};
+use winit::window::Window;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -38,8 +38,8 @@ const VERTICES: &[Vertex] = &[
     },
 ];
 
-pub struct State {
-    surface: wgpu::Surface<'static>,
+pub struct State<'window> {
+    surface: wgpu::Surface<'window>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -47,16 +47,16 @@ pub struct State {
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
     // unsafe references to the window's resources.
-    window: Window,
+    window: &'window Window,
 
     render_pipeline: wgpu::RenderPipeline,
 
     vertex_buffer: wgpu::Buffer,
 }
 
-impl State {
+impl<'window> State<'window> {
     // Creating some of the wgpu types requires async code
-    pub async fn new(window: Window) -> Self {
+    pub async fn new(window: &'window Window) -> Self {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -70,7 +70,7 @@ impl State {
         //
         // The surface needs to live as long as the window that created it.
         // State owns the window so this should be safe.
-        let surface = unsafe { instance.create_surface_from_raw(&window).unwrap() };
+        let surface = instance.create_surface(window).unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -197,12 +197,6 @@ impl State {
             self.surface.configure(&self.device, &self.config);
         }
     }
-
-    fn input(&mut self, event: &WindowEvent) -> bool {
-        false
-    }
-
-    pub fn update(&mut self) {}
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
