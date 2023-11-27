@@ -1,4 +1,4 @@
-use std::mem::size_of;
+use std::{mem::size_of, time::Instant};
 
 use wgpu::{util::DeviceExt, VertexAttribute};
 // lib.rs
@@ -62,6 +62,7 @@ impl<'window> State<'window> {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            // backends: wgpu::Backends::VULKAN,
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
@@ -127,7 +128,7 @@ impl<'window> State<'window> {
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: wgpu::PresentMode::AutoVsync,
+            present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };
@@ -199,7 +200,10 @@ impl<'window> State<'window> {
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let start_get_texture = Instant::now();
         let output = self.surface.get_current_texture()?;
+        println!("\nget texture: {:?}", start_get_texture.elapsed());
+
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -237,6 +241,7 @@ impl<'window> State<'window> {
         }
 
         self.queue.submit(Some(encoder.finish()));
+
         output.present();
 
         Ok(())
