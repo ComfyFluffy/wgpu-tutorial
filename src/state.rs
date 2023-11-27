@@ -39,7 +39,7 @@ const VERTICES: &[Vertex] = &[
 ];
 
 pub struct State {
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'static>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -70,7 +70,7 @@ impl State {
         //
         // The surface needs to live as long as the window that created it.
         // State owns the window so this should be safe.
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+        let surface = unsafe { instance.create_surface_from_raw(&window).unwrap() };
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {

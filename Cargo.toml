@@ -8,8 +8,12 @@ edition = "2021"
 [dependencies]
 winit = { version = "0.29.3", features = ["rwh_05"] }
 log = "0.4"
-wgpu = "0.18.0"
 env_logger = "0.10"
 pollster = "0.3.0"
 rand = "0.8.5"
 bytemuck = { version = "1.14.0", features = ["derive"] }
+
+[dependencies.wgpu]
+version = "0.18.0"
+features = ["vulkan-portability"]
+git = "https://github.com/gfx-rs/wgpu.git"
